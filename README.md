@@ -1,4 +1,4 @@
-# Janoppix - url-capture
+# Janoppix - URL Capture 🖥️ 📸
 
 Servicio en NestJS que recibe una URL y genera una captura del sitio web en modo desktop o mobile (solo el viewport visible). Las capturas se guardan temporalmente en disco y se exponen como imágenes accesibles por URL.
 

@@ -70,7 +70,7 @@ export class ScreenshotService {
     }
 
     try {
-      await page.goto(url, { waitUntil: 'networkidle2', timeout: 15000 });
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
       console.log('iniciando espera', selector);
       if (selector) {
         await page.waitForSelector(selector, { timeout: 10000 });

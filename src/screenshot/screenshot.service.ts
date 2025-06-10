@@ -98,8 +98,14 @@ export class ScreenshotService {
       return publicUrl;
     } catch (error) {
       await browser.close();
+      console.error('Error capturando la URL:', {
+        url,
+        selector,
+        message: error.message,
+        stack: error.stack,
+      });
       throw new HttpException(
-        'Error capturando la URL',
+        `Error capturando la URL: ${error.message}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

@@ -37,6 +37,7 @@ export class ScreenshotController {
       viewport,
       selector,
     );
-    res.json({ imageUrl });
+    const fullImageUrl = `https://servicios.adopslatam.com/captura${imageUrl}`;
+    res.json({ imageUrl, fullImageUrl });
   }
 }

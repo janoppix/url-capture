@@ -10,21 +10,24 @@ export class ScreenshotService {
     url: string,
     viewport: string,
     selector: string = '',
+    proyecto?: string,
   ): Promise<string> {
     const uuid = uuidv4();
     const date = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
     const dateString = `${date.getFullYear()}${pad(date.getMonth()+1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
     const fileName = `${dateString}-${uuid}-${viewport}.png`;
-    const filePath = join(
+    const screenshotsBaseDir = join(
       __dirname,
       '..',
       '..',
       'public',
-      'screenshots',
-      fileName,
     );
-    const publicUrl = `/screenshots/${fileName}`;
+    const projectDir = proyecto ? join(screenshotsBaseDir, proyecto) : screenshotsBaseDir;
+    const { mkdir } = await import('fs/promises');
+    await mkdir(projectDir, { recursive: true });
+    const filePath = join(projectDir, fileName);
+    const publicUrl = proyecto ? `/${proyecto}/${fileName}` : `/screenshots/${fileName}`;
 
     const browser = await puppeteer.launch({
       headless: true,

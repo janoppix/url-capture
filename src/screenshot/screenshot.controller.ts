@@ -17,9 +17,9 @@ export class ScreenshotController {
   async getScreenshot(
     @Query('url') url: string,
     @Query('viewport') viewport: string = 'desktop',
-    @Query('selector') selector: string = '', // nuevo parámetro
-
-    @Res() res: Response,
+    @Query('selector') selector: string = '',
+    @Query('proyecto') proyecto?: string,
+    @Res() res?: Response,
   ) {
     if (!url) {
       throw new HttpException('Missing URL parameter', HttpStatus.BAD_REQUEST);
@@ -36,6 +36,7 @@ export class ScreenshotController {
       url,
       viewport,
       selector,
+      proyecto,
     );
     const fullImageUrl = `https://servicios.adopslatam.com/captura${imageUrl}`;
     res.json({ imageUrl, fullImageUrl });

@@ -22,12 +22,13 @@ export class ScreenshotService {
       '..',
       '..',
       'public',
+      'screenshots',
     );
     const projectDir = proyecto ? join(screenshotsBaseDir, proyecto) : screenshotsBaseDir;
     const { mkdir } = await import('fs/promises');
     await mkdir(projectDir, { recursive: true });
     const filePath = join(projectDir, fileName);
-    const publicUrl = proyecto ? `/${proyecto}/${fileName}` : `/screenshots/${fileName}`;
+    const publicUrl = proyecto ? `/screenshots/${proyecto}/${fileName}` : `/screenshots/${fileName}`;
 
     const browser = await puppeteer.launch({
       headless: true,

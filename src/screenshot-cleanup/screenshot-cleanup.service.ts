@@ -21,21 +21,27 @@ export class ScreenshotCleanupService {
   async handleCleanup() {
     console.log('Dias Maximos de Retencion de imagenes:', this.maxAgeMs);
     try {
-      const files = await readdir(this.screenshotDir);
-      const now = Date.now();
-
-      for (const file of files) {
-        const filePath = join(this.screenshotDir, file);
-        const stats = await stat(filePath);
-        const age = now - stats.mtime.getTime();
-
-        if (age > this.maxAgeMs) {
-          await unlink(filePath);
-          this.logger.log(`Archivo eliminado: ${file}`);
-        }
-      }
+      await this.cleanupDir(this.screenshotDir);
     } catch (error) {
       this.logger.error('Error al limpiar capturas antiguas', error);
+    }
+  }
+
+  private async cleanupDir(dir: string) {
+    const files = await readdir(dir, { withFileTypes: true });
+    const now = Date.now();
+    for (const file of files) {
+      const filePath = join(dir, file.name);
+      if (file.isDirectory()) {
+        await this.cleanupDir(filePath);
+      } else {
+        const stats = await stat(filePath);
+        const age = now - stats.mtime.getTime();
+        if (age > this.maxAgeMs) {
+          await unlink(filePath);
+          this.logger.log(`Archivo eliminado: ${filePath}`);
+        }
+      }
     }
   }
 }

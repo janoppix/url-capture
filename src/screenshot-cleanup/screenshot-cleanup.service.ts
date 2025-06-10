@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { join } from 'path';
 import { readdir, stat, unlink } from 'fs/promises';
+import { config } from 'dotenv';
+config();
 
 @Injectable()
 export class ScreenshotCleanupService {
@@ -13,10 +15,11 @@ export class ScreenshotCleanupService {
     'public',
     'screenshots',
   );
-  private readonly maxAgeMs = 1 * 24 * 60 * 60 * 1000;
+  private readonly maxAgeMs = (parseInt(process.env.SCREENSHOT_MAX_AGE_DAYS || '4', 10)) * 24 * 60 * 60 * 1000;
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCleanup() {
+    console.log('Dias Maximos de Retencion de imagenes:', this.maxAgeMs);
     try {
       const files = await readdir(this.screenshotDir);
       const now = Date.now();

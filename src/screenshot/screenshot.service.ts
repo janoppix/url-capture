@@ -12,7 +12,10 @@ export class ScreenshotService {
     selector: string = '',
   ): Promise<string> {
     const uuid = uuidv4();
-    const fileName = `${uuid}-${viewport}.png`;
+    const date = new Date();
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const dateString = `${date.getFullYear()}${pad(date.getMonth()+1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+    const fileName = `${dateString}-${uuid}-${viewport}.png`;
     const filePath = join(
       __dirname,
       '..',

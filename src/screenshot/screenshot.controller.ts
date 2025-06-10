@@ -17,6 +17,8 @@ export class ScreenshotController {
   async getScreenshot(
     @Query('url') url: string,
     @Query('viewport') viewport: string = 'desktop',
+    @Query('selector') selector: string = '', // nuevo parámetro
+
     @Res() res: Response,
   ) {
     if (!url) {
@@ -30,7 +32,11 @@ export class ScreenshotController {
       );
     }
 
-    const imageUrl = await this.screenshotService.capture(url, viewport);
+    const imageUrl = await this.screenshotService.capture(
+      url,
+      viewport,
+      selector,
+    );
     res.json({ imageUrl });
   }
 }

@@ -120,7 +120,18 @@ export class ScreenshotService {
 
       console.log('selector cargada', selector);
       if (selector) {
-        await page.waitForSelector(selector, { timeout: 0 });
+        try {
+          // Intentamos esperar el selector por un tiempo máximo
+          await Promise.race([
+            page.waitForSelector(selector, { timeout: 0 }),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Selector timeout')), 30000)
+            )
+          ]);
+        } catch (error) {
+          console.log('No se pudo encontrar el selector en el tiempo esperado, continuando...');
+        }
+
         await page.evaluate((sel) => {
           const el = document.querySelector(sel);
           console.log('elemento encontrado:', el ? 'sí' : 'no');
@@ -138,10 +149,12 @@ export class ScreenshotService {
         await page.evaluate(() => window.scrollTo(0, 0));
       }
 
-      // Esperar 15 segundos para que la publicidad se cargue
-      console.log('iniciando espera', selector);
+      // Esperar un tiempo fijo para que la publicidad se cargue
+      console.log('Esperando tiempo fijo para la captura...');
       await new Promise((resolve) => setTimeout(resolve, 15000));
 
+      // Intentar tomar la captura incluso si los anuncios siguen cargando
+      console.log('Tomando captura...');
       const screenshotBuffer = await page.screenshot({ fullPage: false });
       await writeFile(filePath, screenshotBuffer);
       await browser.close();

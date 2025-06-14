@@ -123,7 +123,7 @@ export class ScreenshotService {
         try {
           // Intentamos esperar el selector por un tiempo máximo
           await Promise.race([
-            page.waitForSelector(selector, { timeout: 0 }),
+            page.waitForSelector(selector, { timeout: 30000 }),
             new Promise((_, reject) => 
               setTimeout(() => reject(new Error('Selector timeout')), 30000)
             )

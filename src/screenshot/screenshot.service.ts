@@ -102,21 +102,40 @@ export class ScreenshotService {
       // Primero visitamos Google
       console.log('Visitando Google primero...');
       await page.goto('https://www.google.com', { 
-        waitUntil: 'networkidle0',
+        waitUntil: 'domcontentloaded',
         timeout: 0 
       });
+      console.log('Google cargado');
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
       // Luego visitamos la URL objetivo
       console.log('Visitando URL objetivo...');
-      await page.goto(url, { 
-        waitUntil: 'networkidle0',
-        timeout: 0 
-      });
+      try {
+        await page.goto(url, { 
+          waitUntil: 'domcontentloaded',
+          timeout: 30000
+        });
+        console.log('URL objetivo cargada inicialmente');
+        
+        // Esperar a que la red esté inactiva por un máximo de 30 segundos
+        await Promise.race([
+          page.waitForNetworkIdle({ idleTime: 1000, timeout: 0 }),
+          new Promise((_, reject) => 
+            setTimeout(() => {
+              console.log('Timeout esperando red inactiva, continuando...');
+              reject(new Error('Network idle timeout'));
+            }, 30000)
+          )
+        ]);
+      } catch (error) {
+        console.log('Error o timeout en la carga de la URL:', error.message);
+      }
 
+      console.log('Guardando cookies...');
       // Guardar cookies después de la navegación
       const cookies = await page.cookies();
       await writeFile(cookiesPath, JSON.stringify(cookies, null, 2));
+      console.log('Cookies guardadas');
 
       console.log('selector cargada', selector);
       if (selector) {

@@ -2,10 +2,41 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import puppeteer from 'puppeteer';
 import { join } from 'path';
-import { writeFile } from 'fs/promises';
+import { writeFile, readFile } from 'fs/promises';
+import { existsSync } from 'fs';
 
 @Injectable()
 export class ScreenshotService {
+  private async setupBrowser() {
+    const userDataDir = join(__dirname, '..', '..', 'browser-data');
+    const cookiesPath = join(userDataDir, 'cookies.json');
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+      ],
+      userDataDir,
+    });
+
+    const page = await browser.newPage();
+    
+    // Capturar logs del navegador
+    page.on('console', msg => console.log('Browser console:', msg.text()));
+
+    // Cargar cookies si existen
+    if (existsSync(cookiesPath)) {
+      const cookiesString = await readFile(cookiesPath, 'utf8');
+      const cookies = JSON.parse(cookiesString);
+      await page.setCookie(...cookies);
+    }
+
+    return { browser, page, cookiesPath };
+  }
+
   async capture(
     url: string,
     viewport: string,
@@ -30,11 +61,7 @@ export class ScreenshotService {
     const filePath = join(projectDir, fileName);
     const publicUrl = proyecto ? `/screenshots/${proyecto}/${fileName}` : `/screenshots/${fileName}`;
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    const page = await browser.newPage();
+    const { browser, page, cookiesPath } = await this.setupBrowser();
 
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => false });
@@ -67,19 +94,36 @@ export class ScreenshotService {
     } else {
       await page.setViewport({ width: 1920, height: 1080, isMobile: false });
       await page.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
-          'AppleWebKit/537.36 (KHTML, like Gecko) ' +
-          'Chrome/124.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
       );
     }
 
     try {
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-      console.log('iniciando espera', selector);
+      // Primero visitamos Google
+      console.log('Visitando Google primero...');
+      await page.goto('https://www.google.com', { 
+        waitUntil: 'networkidle0',
+        timeout: 0 
+      });
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
+      // Luego visitamos la URL objetivo
+      console.log('Visitando URL objetivo...');
+      await page.goto(url, { 
+        waitUntil: 'networkidle0',
+        timeout: 0 
+      });
+
+      // Guardar cookies después de la navegación
+      const cookies = await page.cookies();
+      await writeFile(cookiesPath, JSON.stringify(cookies, null, 2));
+
+      console.log('selector cargada', selector);
       if (selector) {
-        await page.waitForSelector(selector, { timeout: 10000 });
+        await page.waitForSelector(selector, { timeout: 0 });
         await page.evaluate((sel) => {
           const el = document.querySelector(sel);
+          console.log('elemento encontrado:', el ? 'sí' : 'no');
           if (el) {
             console.log('encontrado selector en el sitio');
             el.scrollIntoView({ behavior: 'instant', block: 'center' });
@@ -94,7 +138,10 @@ export class ScreenshotService {
         await page.evaluate(() => window.scrollTo(0, 0));
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Esperar 15 segundos para que la publicidad se cargue
+      console.log('iniciando espera', selector);
+      await new Promise((resolve) => setTimeout(resolve, 15000));
+
       const screenshotBuffer = await page.screenshot({ fullPage: false });
       await writeFile(filePath, screenshotBuffer);
       await browser.close();

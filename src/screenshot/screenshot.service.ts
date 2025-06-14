@@ -25,7 +25,11 @@ export class ScreenshotService {
     const page = await browser.newPage();
     
     // Capturar logs del navegador
-    page.on('console', msg => console.log('Browser console:', msg.text()));
+    page.on('console', msg => {
+      const type = msg.type();
+      const text = msg.text();
+      console.log(`🌐 [Browser ${type.toUpperCase()}] ${text}`);
+    });
 
     // Cargar cookies si existen
     if (existsSync(cookiesPath)) {
@@ -100,55 +104,58 @@ export class ScreenshotService {
 
     try {
       // Primero visitamos Google
-      console.log('Visitando Google primero...');
+      console.log('📱 [Script] Visitando Google primero...');
       await page.goto('https://www.google.com', { 
         waitUntil: 'domcontentloaded',
         timeout: 0 
       });
-      console.log('Google cargado');
+      console.log('📱 [Script] Google cargado');
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
       // Luego visitamos la URL objetivo
-      console.log('Visitando URL objetivo...');
+      console.log('📱 [Script] Visitando URL objetivo...');
       try {
         await page.goto(url, { 
           waitUntil: 'domcontentloaded',
           timeout: 30000
         });
-        console.log('URL objetivo cargada inicialmente');
+        console.log('📱 [Script] URL objetivo cargada inicialmente');
         
         // Esperar a que la red esté inactiva por un máximo de 30 segundos
         await Promise.race([
           page.waitForNetworkIdle({ idleTime: 1000, timeout: 0 }),
           new Promise((_, reject) => 
             setTimeout(() => {
-              console.log('Timeout esperando red inactiva, continuando...');
+              console.log('📱 [Script] Timeout esperando red inactiva, continuando...');
               reject(new Error('Network idle timeout'));
             }, 30000)
           )
         ]);
       } catch (error) {
-        console.log('Error o timeout en la carga de la URL:', error.message);
+        console.log('📱 [Script] Error o timeout en la carga de la URL:', error.message);
       }
 
-      console.log('Guardando cookies...');
+      console.log('📱 [Script] Guardando cookies...');
       // Guardar cookies después de la navegación
       const cookies = await page.cookies();
       await writeFile(cookiesPath, JSON.stringify(cookies, null, 2));
-      console.log('Cookies guardadas');
+      console.log('📱 [Script] Cookies guardadas');
 
-      console.log('selector cargada', selector);
+      console.log('📱 [Script] selector cargada', selector);
       if (selector) {
         try {
           // Intentamos esperar el selector por un tiempo máximo
           await Promise.race([
             page.waitForSelector(selector, { timeout: 30000 }),
             new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Selector timeout')), 30000)
+              setTimeout(() => {
+                console.log('📱 [Script] No se pudo encontrar el selector en el tiempo esperado, continuando...');
+                reject(new Error('Selector timeout'));
+              }, 30000)
             )
           ]);
         } catch (error) {
-          console.log('No se pudo encontrar el selector en el tiempo esperado, continuando...');
+          console.log('📱 [Script] No se pudo encontrar el selector en el tiempo esperado, continuando...');
         }
 
         await page.evaluate((sel) => {
@@ -162,18 +169,18 @@ export class ScreenshotService {
           }
         }, selector);
       } else {
-        console.log('no se ingreso el selector');
+        console.log('📱 [Script] no se ingreso el selector');
         await page.evaluate(() => window.scrollBy(0, 300));
         await new Promise((resolve) => setTimeout(resolve, 1500));
         await page.evaluate(() => window.scrollTo(0, 0));
       }
 
       // Esperar un tiempo fijo para que la publicidad se cargue
-      console.log('Esperando tiempo fijo para la captura...');
+      console.log('📱 [Script] Esperando tiempo fijo para la captura...');
       await new Promise((resolve) => setTimeout(resolve, 15000));
 
       // Intentar tomar la captura incluso si los anuncios siguen cargando
-      console.log('Tomando captura...');
+      console.log('📱 [Script] Tomando captura...');
       const screenshotBuffer = await page.screenshot({ fullPage: false });
       await writeFile(filePath, screenshotBuffer);
       await browser.close();
@@ -181,7 +188,7 @@ export class ScreenshotService {
       return publicUrl;
     } catch (error) {
       await browser.close();
-      console.error('Error capturando la URL:', {
+      console.error('📱 [Script] Error capturando la URL:', {
         url,
         selector,
         message: error.message,
